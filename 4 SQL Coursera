@@ -1,0 +1,176 @@
+Download the datasets
+This assignment requires you to load the spacex dataset.
+
+In many cases the dataset to be analyzed is available as a .CSV (comma separated values) file, perhaps on the internet. Click on the link below to download and save the dataset (.CSV file):
+
+Spacex DataSet
+
+!pip install sqlalchemy==1.3.9
+Connect to the database
+Let us first load the SQL extension and establish a connection with the database
+
+%load_ext sql
+import csv, sqlite3
+
+con = sqlite3.connect("my_data1.db")
+cur = con.cursor()
+!pip install -q pandas==1.1.5
+%sql sqlite:///my_data1.db
+import pandas as pd
+df = pd.read_csv("https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-DS0321EN-SkillsNetwork/labs/module_2/data/Spacex.csv")
+df.to_sql("SPACEXTBL", con, if_exists='replace', index=False,method="multi")
+101
+Note:This below code is added to remove blank rows from table
+
+%sql create table SPACEXTABLE as select * from SPACEXTBL where Date is not null
+ * sqlite:///my_data1.db
+Done.
+[]
+Tasks
+Now write and execute SQL queries to solve the assignment tasks.
+
+Note: If the column names are in mixed case enclose it in double quotes For Example "Landing_Outcome"
+
+Task 1
+Display the names of the unique launch sites in the space mission
+%sql select DISTINCT("Launch_Site") from "SPACEXTBL"
+ * sqlite:///my_data1.db
+Done.
+Launch_Site
+CCAFS LC-40
+VAFB SLC-4E
+KSC LC-39A
+CCAFS SLC-40
+Task 2
+Display 5 records where launch sites begin with the string 'CCA'
+%sql select "Launch_Site" from "SPACEXTBL" where "Launch_Site" like 'CCA%' limit 5
+ * sqlite:///my_data1.db
+Done.
+Launch_Site
+CCAFS LC-40
+CCAFS LC-40
+CCAFS LC-40
+CCAFS LC-40
+CCAFS LC-40
+Task 3
+Display the total payload mass carried by boosters launched by NASA (CRS)
+%sql select sum("PAYLOAD_MASS__KG_") AS 'Total Payload Mass carried by boosters launched by Nasa (CRS)'  from "SPACEXTBL" where "Customer" Like 'Nasa (CRS)' 
+ * sqlite:///my_data1.db
+Done.
+Total Payload Mass carried by boosters launched by Nasa (CRS)
+45596
+Task 4
+Display average payload mass carried by booster version F9 v1.1
+%sql select avg("PAYLOAD_MASS__KG_") as 'Average Payload mass carried by F9 v1.1' from SPACEXTBL where "Booster_Version" like 'F9 v1.1'; 
+ * sqlite:///my_data1.db
+Done.
+Average Payload mass carried by F9 v1.1
+2928.4
+Task 5
+List the date when the first succesful landing outcome in ground pad was acheived.
+Hint:Use min function
+
+%sql select "Date" as 'First Successful landing outcome in ground pad date' from SPACEXTBL where "Landing_Outcome" like 'Success (ground pad)' limit 1;
+ * sqlite:///my_data1.db
+Done.
+First Successful landing outcome in ground pad date
+2015-12-22
+Task 6
+List the names of the boosters which have success in drone ship and have payload mass greater than 4000 but less than 6000
+%%sql select "Booster_Version" as 'boosters which have success in drone ship and have payload mass greater than 4000 but less than 6000' 
+    from spacextbl 
+    where "Landing_Outcome" like 'Success (drone ship)' and ("PAYLOAD_MASS__KG_" < 6000 and "PAYLOAD_MASS__KG_" > 4000);
+ * sqlite:///my_data1.db
+Done.
+boosters which have success in drone ship and have payload mass greater than 4000 but less than 6000
+F9 FT B1022
+F9 FT B1026
+F9 FT B1021.2
+F9 FT B1031.2
+Task 7
+List the total number of successful and failure mission outcomes
+%%sql select "Mission_Outcome", count("Mission_Outcome") as 'Total Number'
+    from spacextbl group by "Mission_Outcome";
+ * sqlite:///my_data1.db
+Done.
+Mission_Outcome	Total Number
+Failure (in flight)	1
+Success	98
+Success	1
+Success (payload status unclear)	1
+Task 8
+List the names of the booster_versions which have carried the maximum payload mass. Use a subquery
+%%sql select "Booster_Version" as 'Booster Versions with max payload mass' from spacextbl 
+        where "PAYLOAD_MASS__KG_" = (select max("PAYLOAD_MASS__KG_") from spacextbl)
+ * sqlite:///my_data1.db
+Done.
+Booster Versions with max payload mass
+F9 B5 B1048.4
+F9 B5 B1049.4
+F9 B5 B1051.3
+F9 B5 B1056.4
+F9 B5 B1048.5
+F9 B5 B1051.4
+F9 B5 B1049.5
+F9 B5 B1060.2
+F9 B5 B1058.3
+F9 B5 B1051.6
+F9 B5 B1060.3
+F9 B5 B1049.7
+Task 9
+List the records which will display the month names, failure landing_outcomes in drone ship ,booster versions, launch_site for the months in year 2015.
+Note: SQLLite does not support monthnames. So you need to use substr(Date, 4, 2) as month to get the months and substr(Date,7,4)='2015' for year.
+
+%%sql SELECT
+    substr("Date", 0, 5) as 'Year'
+    ,CASE substr("Date", 6, 2)
+        WHEN '01' THEN 'January'
+        WHEN '02' THEN 'February'
+        WHEN '03' THEN 'March'
+        WHEN '04' THEN 'April'
+        WHEN '05' THEN 'May'
+        WHEN '06' THEN 'June'
+        WHEN '07' THEN 'July'
+        WHEN '08' THEN 'August'
+        WHEN '09' THEN 'September'
+        WHEN '10' THEN 'October'
+        WHEN '11' THEN 'November'
+        WHEN '12' THEN 'December'
+        ELSE 'Invalid Month'
+    END AS "Month Names", "Landing_Outcome" as "Landing Outcomes in drone ship", "Booster_Version", "Launch_Site"
+FROM spacextbl
+Where "Landing_Outcome" like "Failure (drone ship)" and (substr("Date", 0, 5) like "2015");
+ * sqlite:///my_data1.db
+Done.
+Year	Month Names	Landing Outcomes in drone ship	Booster_Version	Launch_Site
+2015	October	Failure (drone ship)	F9 v1.1 B1012	CCAFS LC-40
+2015	April	Failure (drone ship)	F9 v1.1 B1015	CCAFS LC-40
+%sql select * from SPACEXTBL limit 15;
+ * sqlite:///my_data1.db
+Done.
+Date	Time (UTC)	Booster_Version	Launch_Site	Payload	PAYLOAD_MASS__KG_	Orbit	Customer	Mission_Outcome	Landing_Outcome
+2010-04-06	18:45:00	F9 v1.0 B0003	CCAFS LC-40	Dragon Spacecraft Qualification Unit	0	LEO	SpaceX	Success	Failure (parachute)
+2010-08-12	15:43:00	F9 v1.0 B0004	CCAFS LC-40	Dragon demo flight C1, two CubeSats, barrel of Brouere cheese	0	LEO (ISS)	NASA (COTS) NRO	Success	Failure (parachute)
+2012-05-22	07:44:00	F9 v1.0 B0005	CCAFS LC-40	Dragon demo flight C2	525	LEO (ISS)	NASA (COTS)	Success	No attempt
+2012-08-10	00:35:00	F9 v1.0 B0006	CCAFS LC-40	SpaceX CRS-1	500	LEO (ISS)	NASA (CRS)	Success	No attempt
+2013-01-03	15:10:00	F9 v1.0 B0007	CCAFS LC-40	SpaceX CRS-2	677	LEO (ISS)	NASA (CRS)	Success	No attempt
+2013-09-29	16:00:00	F9 v1.1 B1003	VAFB SLC-4E	CASSIOPE	500	Polar LEO	MDA	Success	Uncontrolled (ocean)
+2013-03-12	22:41:00	F9 v1.1	CCAFS LC-40	SES-8	3170	GTO	SES	Success	No attempt
+2014-06-01	22:06:00	F9 v1.1	CCAFS LC-40	Thaicom 6	3325	GTO	Thaicom	Success	No attempt
+2014-04-18	19:25:00	F9 v1.1	CCAFS LC-40	SpaceX CRS-3	2296	LEO (ISS)	NASA (CRS)	Success	Controlled (ocean)
+2014-07-14	15:15:00	F9 v1.1	CCAFS LC-40	OG2 Mission 1 6 Orbcomm-OG2 satellites	1316	LEO	Orbcomm	Success	Controlled (ocean)
+2014-05-08	08:00:00	F9 v1.1	CCAFS LC-40	AsiaSat 8	4535	GTO	AsiaSat	Success	No attempt
+2014-07-09	05:00:00	F9 v1.1 B1011	CCAFS LC-40	AsiaSat 6	4428	GTO	AsiaSat	Success	No attempt
+2014-09-21	05:52:00	F9 v1.1 B1010	CCAFS LC-40	SpaceX CRS-4	2216	LEO (ISS)	NASA (CRS)	Success	Uncontrolled (ocean)
+2015-10-01	09:47:00	F9 v1.1 B1012	CCAFS LC-40	SpaceX CRS-5	2395	LEO (ISS)	NASA (CRS)	Success	Failure (drone ship)
+2015-11-02	23:03:00	F9 v1.1 B1013	CCAFS LC-40	DSCOVR	570	HEO	U.S. Air Force NASA NOAA	Success	Controlled (ocean)
+Task 10
+Rank the count of landing outcomes (such as Failure (drone ship) or Success (ground pad)) between the date 2010-06-04 and 2017-03-20, in descending order.
+%%sql select "Landing_Outcome", Count("Landing_Outcome") as 'Total Number Ranked'
+    from spacextbl  where ("Date" between "2010-06-04" and "2017-03-20") and( ("Landing_Outcome" like "Success (ground pad)") or ("Landing_Outcome" like "Failure (drone ship)"))
+    group by "Landing_Outcome" order by 'Total Number Ranked' DESC;
+ * sqlite:///my_data1.db
+Done.
+Landing_Outcome	Total Number Ranked
+Success (ground pad)	5
+Failure (drone ship)	5
