@@ -1,0 +1,174 @@
+Import Libraries and Define Auxiliary Functions
+We will import the following libraries into the lab
+
+# Requests allows us to make HTTP requests which we will use to get data from an API
+import requests
+# Pandas is a software library written for the Python programming language for data manipulation and analysis.
+import pandas as pd
+# NumPy is a library for the Python programming language, adding support for large, multi-dimensional arrays and matrices, along with a large collection of high-level mathematical functions to operate on these arrays
+import numpy as np
+# Datetime is a library that allows us to represent dates
+import datetime
+
+# Setting this option will print all collumns of a dataframe
+pd.set_option('display.max_columns', None)
+# Setting this option will print all of the data in a feature
+pd.set_option('display.max_colwidth', None)
+Below we will define a series of helper functions that will help us use the API to extract information using identification numbers in the launch data.
+
+From the rocket column we would like to learn the booster name.
+
+# Takes the dataset and uses the rocket column to call the API and append the data to the list
+def getBoosterVersion(data):
+    for x in data['rocket']:
+       if x:
+        response = requests.get("https://api.spacexdata.com/v4/rockets/"+str(x)).json()
+        BoosterVersion.append(response['name'])
+From the launchpad we would like to know the name of the launch site being used, the logitude, and the latitude.
+
+# Takes the dataset and uses the launchpad column to call the API and append the data to the list
+def getLaunchSite(data):
+    for x in data['launchpad']:
+       if x:
+         response = requests.get("https://api.spacexdata.com/v4/launchpads/"+str(x)).json()
+         Longitude.append(response['longitude'])
+         Latitude.append(response['latitude'])
+         LaunchSite.append(response['name'])
+From the payload we would like to learn the mass of the payload and the orbit that it is going to.
+
+# Takes the dataset and uses the payloads column to call the API and append the data to the lists
+def getPayloadData(data):
+    for load in data['payloads']:
+       if load:
+        response = requests.get("https://api.spacexdata.com/v4/payloads/"+load).json()
+        PayloadMass.append(response['mass_kg'])
+        Orbit.append(response['orbit'])
+From cores we would like to learn the outcome of the landing, the type of the landing, number of flights with that core, whether gridfins were used, wheter the core is reused, wheter legs were used, the landing pad used, the block of the core which is a number used to seperate version of cores, the number of times this specific core has been reused, and the serial of the core.
+
+# Takes the dataset and uses the cores column to call the API and append the data to the lists
+def getCoreData(data):
+    for core in data['cores']:
+            if core['core'] != None:
+                response = requests.get("https://api.spacexdata.com/v4/cores/"+core['core']).json()
+                Block.append(response['block'])
+                ReusedCount.append(response['reuse_count'])
+                Serial.append(response['serial'])
+            else:
+                Block.append(None)
+                ReusedCount.append(None)
+                Serial.append(None)
+            Outcome.append(str(core['landing_success'])+' '+str(core['landing_type']))
+            Flights.append(core['flight'])
+            GridFins.append(core['gridfins'])
+            Reused.append(core['reused'])
+            Legs.append(core['legs'])
+            LandingPad.append(core['landpad'])
+Now let's start requesting rocket launch data from SpaceX API with the following URL:
+
+spacex_url="https://api.spacexdata.com/v4/launches/past"
+response = requests.get(spacex_url)
+Check the content of the response
+
+print(response.content)
+
+FlightNumber	PayloadMass	Flights	Block	ReusedCount	Longitude	Latitude
+count	94.000000	88.000000	94.000000	90.000000	94.000000	94.000000	94.000000
+mean	54.202128	5919.165341	1.755319	3.500000	3.053191	-75.553302	28.581782
+std	30.589048	4909.689575	1.197544	1.595288	4.153938	53.391880	4.639981
+min	1.000000	20.000000	1.000000	1.000000	0.000000	-120.610829	9.047721
+25%	28.250000	2406.250000	1.000000	2.000000	0.000000	-80.603956	28.561857
+50%	52.500000	4414.000000	1.000000	4.000000	1.000000	-80.577366	28.561857
+75%	81.500000	9543.750000	2.000000	5.000000	4.000000	-80.577366	28.608058
+max	106.000000	15600.000000	6.000000	5.000000	13.000000	167.743129	34.632093
+data_falcon9.head(5)
+FlightNumber	Date	BoosterVersion	PayloadMass	Orbit	LaunchSite	Outcome	Flights	GridFins	Reused	Legs	LandingPad	Block	ReusedCount	Serial	Longitude	Latitude
+0	1	2006-03-24	Falcon 1	20.0	LEO	Kwajalein Atoll	None None	1	False	False	False	None	NaN	0	Merlin1A	167.743129	9.047721
+1	2	2007-03-21	Falcon 1	NaN	LEO	Kwajalein Atoll	None None	1	False	False	False	None	NaN	0	Merlin2A	167.743129	9.047721
+2	4	2008-09-28	Falcon 1	165.0	LEO	Kwajalein Atoll	None None	1	False	False	False	None	NaN	0	Merlin2C	167.743129	9.047721
+3	5	2009-07-13	Falcon 1	200.0	LEO	Kwajalein Atoll	None None	1	False	False	False	None	NaN	0	Merlin3C	167.743129	9.047721
+4	6	2010-06-04	Falcon 9	NaN	LEO	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B0003	-80.577366	28.561857
+data_falcon9["BoosterVersion"].value_counts()
+Falcon 9    90
+Falcon 1     4
+Name: BoosterVersion, dtype: int64
+Task 2: Filter the dataframe to only include Falcon 9 launches
+Finally we will remove the Falcon 1 launches keeping only the Falcon 9 launches. Filter the data dataframe using the BoosterVersion column to only keep the Falcon 9 launches. Save the filtered data to a new dataframe called data_falcon9.
+
+# Hint data['BoosterVersion']!='Falcon 1'
+data_falcon9 = data_falcon9.loc[data_falcon9["BoosterVersion"] == "Falcon 9"]
+data_falcon9.head()
+FlightNumber	Date	BoosterVersion	PayloadMass	Orbit	LaunchSite	Outcome	Flights	GridFins	Reused	Legs	LandingPad	Block	ReusedCount	Serial	Longitude	Latitude
+4	6	2010-06-04	Falcon 9	NaN	LEO	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B0003	-80.577366	28.561857
+5	8	2012-05-22	Falcon 9	525.0	LEO	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B0005	-80.577366	28.561857
+6	10	2013-03-01	Falcon 9	677.0	ISS	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B0007	-80.577366	28.561857
+7	11	2013-09-29	Falcon 9	500.0	PO	VAFB SLC 4E	False Ocean	1	False	False	False	None	1.0	0	B1003	-120.610829	34.632093
+8	12	2013-12-03	Falcon 9	3170.0	GTO	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B1004	-80.577366	28.561857
+Now that we have removed some values we should reset the FlgihtNumber column
+
+data_falcon9.loc[:,'FlightNumber'] = list(range(1, data_falcon9.shape[0]+1))
+data_falcon9.head()
+FlightNumber	Date	BoosterVersion	PayloadMass	Orbit	LaunchSite	Outcome	Flights	GridFins	Reused	Legs	LandingPad	Block	ReusedCount	Serial	Longitude	Latitude
+4	1	2010-06-04	Falcon 9	NaN	LEO	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B0003	-80.577366	28.561857
+5	2	2012-05-22	Falcon 9	525.0	LEO	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B0005	-80.577366	28.561857
+6	3	2013-03-01	Falcon 9	677.0	ISS	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B0007	-80.577366	28.561857
+7	4	2013-09-29	Falcon 9	500.0	PO	VAFB SLC 4E	False Ocean	1	False	False	False	None	1.0	0	B1003	-120.610829	34.632093
+8	5	2013-12-03	Falcon 9	3170.0	GTO	CCSFS SLC 40	None None	1	False	False	False	None	1.0	0	B1004	-80.577366	28.561857
+Data Wrangling
+We can see below that some of the rows are missing values in our dataset.
+
+data_falcon9.isnull().sum()
+FlightNumber       0
+Date               0
+BoosterVersion     0
+PayloadMass        5
+Orbit              0
+LaunchSite         0
+Outcome            0
+Flights            0
+GridFins           0
+Reused             0
+Legs               0
+LandingPad        26
+Block              0
+ReusedCount        0
+Serial             0
+Longitude          0
+Latitude           0
+dtype: int64
+Before we can continue we must deal with these missing values. The LandingPad column will retain None values to represent when landing pads were not used.
+
+Task 3: Dealing with Missing Values
+Calculate below the mean for the PayloadMass using the .mean(). Then use the mean and the .replace() function to replace np.nan values in the data with the mean you calculated.
+
+# Calculate the mean value of PayloadMass column
+PayloadMass_mean = data_falcon9["PayloadMass"].mean()
+# Replace the np.nan values with its mean value
+data_falcon9["PayloadMass"].replace(np.nan, PayloadMass_mean, inplace= True)
+data_falcon9.isnull().sum()
+FlightNumber       0
+Date               0
+BoosterVersion     0
+PayloadMass        0
+Orbit              0
+LaunchSite         0
+Outcome            0
+Flights            0
+GridFins           0
+Reused             0
+Legs               0
+LandingPad        26
+Block              0
+ReusedCount        0
+Serial             0
+Longitude          0
+Latitude           0
+dtype: int64
+You should see the number of missing values of the PayLoadMass change to zero.
+
+Now we should have no missing values in our dataset except for in LandingPad.
+
+We can now export it to a CSV for the next section,but to make the answers consistent, in the next lab we will provide data in a pre-selected date range.
+
+data_falcon9.to_csv('dataset_part_1.csv', index=False)
+
+data_falcon9.to_csv("dataset_part_1.csv", index = False)
